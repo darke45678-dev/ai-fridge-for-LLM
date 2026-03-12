@@ -227,27 +227,30 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
         
         const itemToRemove = scannedItems.find(i => i.id === id);
         
-        // 如果食材被判定為「過期」或「損壞」，則計入浪費數據
         if (itemToRemove) {
-            const daysPassed = Math.floor((Date.now() - (itemToRemove.timestamp || Date.now())) / (1000 * 60 * 60 * 24));
-            const isExpired = (itemToRemove.expiryDays !== undefined ? itemToRemove.expiryDays : 7) - daysPassed <= 0;
+            const now = Date.now();
+            const daysPassed = Math.floor((now - (itemToRemove.timestamp || now)) / (1000 * 60 * 60 * 24));
+            const expiryDays = itemToRemove.expiryDays !== undefined ? itemToRemove.expiryDays : 7;
+            const daysLeft = expiryDays - daysPassed;
             
-            if (itemToRemove.isSpoiled || isExpired) {
+            // 判定條件：已標記損壞、天數到期、或手動設為 0
+            const isWaste = itemToRemove.isSpoiled || daysLeft <= 0 || expiryDays <= 0;
+            
+            if (isWaste) {
                 setWasteHistory(prev => {
                     const today = new Date();
-                    const y = today.getFullYear();
-                    const m = String(today.getMonth() + 1).padStart(2, '0');
-                    const d = String(today.getDate()).padStart(2, '0');
-                    const dateStr = `${y}-${m}-${d}`;
-
+                    // 格式：YYYY-MM-DD (精確到本地日期)
+                    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                    
                     const newHistory = [...prev];
                     const existingIdx = newHistory.findIndex(h => h.date === dateStr);
                     
                     if (existingIdx !== -1) {
+                        const existing = newHistory[existingIdx];
                         newHistory[existingIdx] = {
-                            ...newHistory[existingIdx],
-                            amount: newHistory[existingIdx].amount + 1,
-                            items: [...(newHistory[existingIdx].items || []), itemToRemove.name]
+                            ...existing,
+                            amount: (Number(existing.amount) || 0) + 1,
+                            items: Array.from(new Set([...(existing.items || []), itemToRemove.name]))
                         };
                     } else {
                         newHistory.push({
@@ -255,6 +258,7 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
                             amount: 1,
                             items: [itemToRemove.name]
                         });
+                        newHistory.sort((a, b) => a.date.localeCompare(b.date));
                     }
                     return newHistory;
                 });

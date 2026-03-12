@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     Camera, Sparkles, X, Plus, Minus, Package,
     Trash2, Search, Share2, ChefHat,
@@ -454,7 +454,12 @@ export function Inventory() {
 function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scannedItems: ScannedItem[] }) {
     const [tab, setTab] = useState<"history" | "predict">("history");
     const [chartPage, setChartPage] = useState(0); // 0 = 當週, 1 = 前一週...
-    const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    
+    // 透過日期字串即時查找最新的記錄，避免資料更新時選取到舊物件
+    const selectedRecord = useMemo(() => {
+        return data.find(d => d.date === selectedDate) || null;
+    }, [data, selectedDate]);
     
     // 確保 data 始終是陣列
     const chartData = Array.isArray(data) ? data : [];
@@ -536,8 +541,8 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
                                 return (
                                     <div 
                                         key={i} 
-                                        onClick={() => setSelectedRecord(d.amount > 0 ? d : null)}
-                                        className={`flex-1 flex flex-col items-center gap-2 group/bar relative cursor-pointer transition-transform ${selectedRecord?.date === d.date ? 'scale-110' : 'hover:scale-105'}`}
+                                        onClick={() => setSelectedDate(d.amount > 0 ? d.date : null)}
+                                        className={`flex-1 flex flex-col items-center gap-2 group/bar relative cursor-pointer transition-transform ${selectedDate === d.date ? 'scale-110' : 'hover:scale-105'}`}
                                     >
                                         <div className="absolute top-0 opacity-0 group-hover/bar:opacity-100 transition-all duration-300 -translate-y-4 group-hover/bar:-translate-y-2 flex flex-col items-center z-30">
                                             <span className="bg-[#00ff88] text-[#0f2e24] text-[8px] font-black px-2 py-1 rounded-lg tracking-widest shadow-[0_0_15px_rgba(0,255,136,0.3)] whitespace-nowrap">
@@ -549,10 +554,10 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
                                             <motion.div
                                                 initial={{ height: 0 }}
                                                 animate={{ height: Math.max(2, height) }}
-                                                className={`w-4 sm:w-6 rounded-t-full transition-all duration-500 ${selectedRecord?.date === d.date ? 'bg-white brightness-150' : (d.amount >= 3 ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'bg-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.2)]')}`}
+                                                className={`w-4 sm:w-6 rounded-t-full transition-all duration-500 ${selectedDate === d.date ? 'bg-white brightness-150' : (d.amount >= 3 ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'bg-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.2)]')}`}
                                             />
                                         </div>
-                                        <span className={`text-[7px] font-black transition-colors ${selectedRecord?.date === d.date ? 'text-white underline' : 'text-gray-500 group-hover/bar:text-white'}`}>
+                                        <span className={`text-[7px] font-black transition-colors ${selectedDate === d.date ? 'text-white underline' : 'text-gray-500 group-hover/bar:text-white'}`}>
                                             {d.date.split("-")[2]}日
                                         </span>
                                     </div>
@@ -689,9 +694,9 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
                         <div className="mt-4 pt-4 border-t border-white/5 bg-black/20 rounded-2xl p-4">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="text-[8px] font-black text-[#00ff88] uppercase tracking-widest flex items-center gap-2">
-                                    <Clock size={10} /> {selectedRecord.date} 浪費清單
+                                    <Clock size={10} /> {selectedDate} 浪費清單
                                 </div>
-                                <button onClick={() => setSelectedRecord(null)} className="text-[8px] font-black text-gray-500 uppercase">返回</button>
+                                <button onClick={() => setSelectedDate(null)} className="text-[8px] font-black text-gray-500 uppercase">返回</button>
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 {selectedRecord.items?.map((item: string, idx: number) => (
@@ -710,15 +715,15 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
             <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <div className="text-center border-r border-white/10 pr-4">
-                        <div className="text-[10px] font-black text-white">{data.reduce((s, d) => s + d.amount, 0)}</div>
-                        <div className="text-[6px] font-bold text-gray-500 uppercase">本週浪費</div>
+                        <div className="text-[10px] font-black text-white">{totalWaste}</div>
+                        <div className="text-[6px] font-bold text-gray-500 uppercase">累積損耗</div>
                     </div>
                     <div>
-                        <div className="text-[10px] font-black text-[#00ff88]">+{Math.floor(sustainabilityIndex / 10)}</div>
-                        <div className="text-[6px] font-bold text-gray-500 uppercase">環保等級</div>
+                        <div className="text-[10px] font-black text-[#00ff88]">{sustainabilityIndex}%</div>
+                        <div className="text-[6px] font-bold text-gray-500 uppercase">環保等級 (Eco)</div>
                     </div>
                 </div>
-                <div className="text-[8px] font-black text-white/20 uppercase tracking-widest">系統狀態: 運行中</div>
+                <div className="text-[8px] font-black text-white/20 uppercase tracking-widest">Neural Link: Active</div>
             </div>
         </div>
     );
