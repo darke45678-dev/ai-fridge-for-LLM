@@ -33,6 +33,7 @@ interface IngredientContextType {
     selectedIds: string[];
     settings: { notifications: boolean; neuralOptimized: boolean; confidenceThreshold: number };
     wasteHistory: WasteRecord[];
+    savedRecipes: any[];
     addItem: (item: Partial<ScannedItem>) => void;
     updateQuantity: (id: string, delta: number) => void;
     updateItem: (id: string, updates: Partial<ScannedItem>) => void;
@@ -40,6 +41,8 @@ interface IngredientContextType {
     removeIngredient: (id: string) => void;
     toggleSelection: (id: string) => void;
     generateRecipe: () => Promise<void>;
+    saveRecipe: (recipe: any) => void;
+    unsaveRecipe: (recipeId: string) => void;
     clearAll: () => void;
     setRecipes: (recipes: any[]) => void;
     clearTempDetections: () => void;
@@ -66,6 +69,7 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
     const [tempDetections, setTempDetections] = useState<ScannedItem[]>([]);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [settings, setSettings] = useState({ notifications: true, neuralOptimized: true, confidenceThreshold: 0.25 });
+    const [savedRecipes, setSavedRecipes] = useState<any[]>([]);
 
     // Mock 30 days of history
     const [wasteHistory] = useState<WasteRecord[]>(() => {
@@ -100,11 +104,14 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
     // Load from localStorage on mount
     useEffect(() => {
         const saved = localStorage.getItem("scannedIngredients");
-        const savedRecipes = localStorage.getItem("recommendedRecipes");
+        const savedRecs = localStorage.getItem("recommendedRecipes");
         const savedSettings = localStorage.getItem("appSettings");
+        const savedBookmarked = localStorage.getItem("savedRecipes");
+        
         if (saved) try { setScannedItems(JSON.parse(saved)); } catch (e) { }
-        if (savedRecipes) try { setRecommendedRecipes(JSON.parse(savedRecipes)); } catch (e) { }
+        if (savedRecs) try { setRecommendedRecipes(JSON.parse(savedRecs)); } catch (e) { }
         if (savedSettings) try { setSettings(JSON.parse(savedSettings)); } catch (e) { }
+        if (savedBookmarked) try { setSavedRecipes(JSON.parse(savedBookmarked)); } catch (e) { }
     }, []);
 
     // Notification check effect
@@ -130,6 +137,10 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         localStorage.setItem("appSettings", JSON.stringify(settings));
     }, [settings]);
+
+    useEffect(() => {
+        localStorage.setItem("savedRecipes", JSON.stringify(savedRecipes));
+    }, [savedRecipes]);
 
     /**
      * 新增單一食材進入庫存
@@ -242,6 +253,17 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
         setSettings(prev => ({ ...prev, ...newSettings }));
     };
 
+    const saveRecipe = (recipe: any) => {
+        setSavedRecipes(prev => {
+            if (prev.find(r => r.id === recipe.id)) return prev;
+            return [...prev, recipe];
+        });
+    };
+
+    const unsaveRecipe = (recipeId: string) => {
+        setSavedRecipes(prev => prev.filter(r => r.id !== recipeId));
+    };
+
     return (
         <IngredientContext.Provider value={{
             scannedItems,
@@ -257,6 +279,9 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
             removeIngredient,
             toggleSelection,
             generateRecipe,
+            saveRecipe,
+            unsaveRecipe,
+            savedRecipes,
             clearAll,
             setRecipes: setRecommendedRecipes,
             clearTempDetections,

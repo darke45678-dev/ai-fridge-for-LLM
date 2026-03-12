@@ -822,7 +822,7 @@ export function Profile() {
  */
 export function Saved() {
     const nav = useNavigate();
-    const { wasteHistory, scannedItems } = useIngredients();
+    const { wasteHistory, scannedItems, savedRecipes, unsaveRecipe } = useIngredients();
 
     return (
         <div className="pb-24 pt-6">
@@ -831,15 +831,38 @@ export function Saved() {
                 <NeuralAnalyticsDashboard data={wasteHistory} scannedItems={scannedItems} />
             </div>
 
-            <div className="px-6 flex flex-col items-center justify-center py-12 text-center bg-white/5 rounded-[2rem] border border-white/5 mx-6">
-                <div className="w-20 h-20 bg-[#00ff88]/5 rounded-full border border-[#00ff88]/10 flex items-center justify-center mb-6">
-                    <BookOpen size={32} className="text-[#00ff88]/20" />
+            {savedRecipes.length === 0 ? (
+                <div className="px-6 flex flex-col items-center justify-center py-12 text-center bg-white/5 rounded-[2rem] border border-white/5 mx-6">
+                    <div className="w-20 h-20 bg-[#00ff88]/5 rounded-full border border-[#00ff88]/10 flex items-center justify-center mb-6">
+                        <BookOpen size={32} className="text-[#00ff88]/20" />
+                    </div>
+                    <h2 className="text-[11px] font-black text-white/50 uppercase mb-5 tracking-widest">暫無儲存的食譜方案</h2>
+                    <button onClick={() => nav("/")} className="bg-[#00ff88] text-[#0f2e24] px-10 py-4 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg hover:scale-105 transition-all">
+                        啟動掃描器去發掘
+                    </button>
                 </div>
-                <h2 className="text-[11px] font-black text-white/50 uppercase mb-5 tracking-widest">暫無儲存的食譜方案</h2>
-                <button onClick={() => nav("/")} className="bg-[#00ff88] text-[#0f2e24] px-10 py-4 rounded-xl font-black uppercase text-[11px] tracking-widest shadow-lg hover:scale-105 transition-all">
-                    啟動掃描器去發掘
-                </button>
-            </div>
+            ) : (
+                <div className="px-6 space-y-6">
+                    <h3 className="text-[10px] font-black text-white/30 uppercase tracking-widest px-2">我的收藏食譜 ({savedRecipes.length})</h3>
+                    <div className="grid grid-cols-1 gap-6">
+                        {savedRecipes.map((recipe) => (
+                            <div key={recipe.id} className="relative group">
+                                <RecipeCard 
+                                    recipe={recipe} 
+                                    onClick={() => nav(`/recipe/${recipe.id}`)}
+                                    getCategoryLabel={(c) => c === "vegetable" ? "蔬菜" : c === "fruit" ? "水果" : c === "meat" ? "肉類" : "綜合"}
+                                />
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); unsaveRecipe(recipe.id); }}
+                                    className="absolute top-4 right-4 z-30 w-10 h-10 rounded-full bg-red-500/20 text-red-500 border border-red-500/20 flex items-center justify-center backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -856,7 +879,7 @@ export function Saved() {
 export function RecipeDetail() {
     const { id } = useParams();
     const nav = useNavigate();
-    const { recommendedRecipes, scannedItems, setRecipes } = useIngredients();
+    const { recommendedRecipes, scannedItems, setRecipes, saveRecipe, savedRecipes } = useIngredients();
 
     const [showSaveModal, setShowSaveModal] = useState(false);
 
@@ -902,8 +925,15 @@ export function RecipeDetail() {
                     </button>
                 </div>
 
-                <button onClick={() => setShowSaveModal(true)} className="w-full bg-[#00ff88] text-[#0f2e24] py-5 rounded-2xl font-black text-sm uppercase shadow-lg flex items-center justify-center gap-3 mt-4 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                    <BookOpen size={20} />儲存食譜
+                <button 
+                    onClick={() => {
+                        saveRecipe(recipe);
+                        setShowSaveModal(true);
+                    }} 
+                    className={`w-full py-5 rounded-2xl font-black text-sm uppercase shadow-lg flex items-center justify-center gap-3 mt-4 hover:scale-[1.02] active:scale-[0.98] transition-all ${savedRecipes.find(r => r.id === recipe.id) ? 'bg-white/10 text-white' : 'bg-[#00ff88] text-[#0f2e24]'}`}
+                >
+                    <BookOpen size={20} />
+                    {savedRecipes.find(r => r.id === recipe.id) ? '已儲存此食譜' : '儲存食譜'}
                 </button>
             </div>
 
