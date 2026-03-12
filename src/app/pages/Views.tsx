@@ -44,6 +44,9 @@ export function Scanner() {
             <div className="flex flex-col items-center justify-center px-6 pt-12 pb-4">
                 <CameraView videoRef={videoRef} />
 
+                {/* 顯示掃描到的食材暫存清單 */}
+                <DetectionSummary />
+
                 <p className="text-center text-gray-400 text-xs mt-8 px-10 leading-relaxed uppercase tracking-widest font-medium opacity-60">將鏡頭對準食材<br />AI 將自動辨識並同步庫存</p>
             </div>
         </div>
@@ -883,10 +886,10 @@ export function RecipeDetail() {
 
     const [showSaveModal, setShowSaveModal] = useState(false);
 
-    // 優先從全域推薦中找，找不到才去靜態庫 (Search context first, then static DB)
-    const [recipe] = useState(() =>
-        recommendedRecipes.find(r => r.id === id) ||
+    // 修正：使用 useMemo 確保即使推薦列表非同步更新，詳情頁也能抓到資料
+    const recipe = recommendedRecipes.find(r => r.id === id) ||
         recipeDatabase.find(r => r.id === id) ||
+        savedRecipes.find(r => r.id === id) ||
         {
             name: "AI 合成食譜",
             image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
@@ -895,9 +898,16 @@ export function RecipeDetail() {
             requiredIngredients: ["番茄", "菠菜"],
             optionalIngredients: [],
             description: "智慧生成食譜。"
+        };
+
+    const [checked, setChecked] = useState<boolean[]>([]);
+    
+    // 初始化勾選狀態
+    useEffect(() => {
+        if (recipe && recipe.requiredIngredients) {
+            setChecked(new Array(recipe.requiredIngredients.length).fill(false));
         }
-    );
-    const [checked, setChecked] = useState<boolean[]>(new Array(recipe.requiredIngredients.length).fill(false));
+    }, [recipe]);
 
     return (
         <div className="pb-32"><PageHeader showBackButton title="烹飪指南" /><RecipeHero image={recipe.image} name={recipe.name} />
