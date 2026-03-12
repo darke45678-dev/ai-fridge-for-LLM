@@ -563,7 +563,10 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
                                             />
                                         </div>
                                         <span className={`text-[7px] font-black transition-colors ${selectedDate === d.date ? 'text-white underline' : 'text-gray-500 group-hover/bar:text-white'}`}>
-                                            {d.date.split("-")[2]}日
+                                            {(() => {
+                                                const parts = d.date.split("-");
+                                                return `${Number(parts[1])}/${Number(parts[2])}`;
+                                            })()}
                                         </span>
                                     </div>
                                 );

@@ -81,17 +81,21 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
         const savedBookmarked = localStorage.getItem("savedRecipes");
         const savedWaste = localStorage.getItem("wasteHistory");
         
-        if (saved) try { setScannedItems(JSON.parse(saved)); } catch (e) { }
-        if (savedRecs) try { setRecommendedRecipes(JSON.parse(savedRecs)); } catch (e) { }
+        if (saved) try { setScannedItems(JSON.parse(saved)); } catch (e) { setScannedItems([]); }
+        if (savedRecs) try { setRecommendedRecipes(JSON.parse(savedRecs)); } catch (e) { setRecommendedRecipes([]); }
         if (savedSettings) try { setSettings(JSON.parse(savedSettings)); } catch (e) { }
-        if (savedBookmarked) try { setSavedRecipes(JSON.parse(savedBookmarked)); } catch (e) { }
+        if (savedBookmarked) try { setSavedRecipes(JSON.parse(savedBookmarked)); } catch (e) { setSavedRecipes([]); }
         if (savedWaste) {
             try { 
                 const parsed = JSON.parse(savedWaste);
                 if (Array.isArray(parsed) && parsed.length > 0) {
                     setWasteHistory(parsed); 
+                } else {
+                    setWasteHistory([]);
                 }
-            } catch (e) { }
+            } catch (e) { setWasteHistory([]); }
+        } else {
+            setWasteHistory([]);
         }
     }, []);
 
