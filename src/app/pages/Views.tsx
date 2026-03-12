@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
     Camera, Sparkles, X, Plus, Minus, Package,
     Trash2, Search, Share2, ChefHat,
-    User, Settings, HelpCircle, LogOut, ChevronRight,
+    User, Settings, HelpCircle, LogOut, ChevronRight, ChevronLeft,
     BookOpen, Clock, Users, Loader2, Mic, Edit2, AlertTriangle, Snowflake, Moon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -423,37 +423,28 @@ export function Inventory() {
  */
 function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scannedItems: ScannedItem[] }) {
     const [tab, setTab] = useState<"history" | "predict">("history");
-    const [activeZone, setActiveZone] = useState<"risk" | "warning" | "safe" | null>(null);
+    const [chartPage, setChartPage] = useState(0); // 0 = 當週, 1 = 前一週...
     const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
+
+    // 每頁顯示 7 天
+    const PAGE_SIZE = 7;
+    const endIdx = data.length - (chartPage * PAGE_SIZE);
+    const startIdx = Math.max(0, endIdx - PAGE_SIZE);
+    const visibleData = data.slice(startIdx, endIdx);
 
     // 計算預測浪費 (未來 3 天內過期的)
     const expiringSoon = scannedItems.filter(i => {
         const daysPassed = Math.floor((Date.now() - (i.timestamp || Date.now())) / (1000 * 60 * 60 * 24));
         const daysLeft = (i.expiryDays !== undefined ? i.expiryDays : 7) - daysPassed;
-        return daysLeft >= 0 && daysLeft <= 3 && !i.isSpoiled; // 擴大到 3 天內到期
+        return daysLeft >= 0 && daysLeft <= 3 && !i.isSpoiled; 
     });
 
-    // 偵錯日誌：當切換到預測分頁時輸出
-    useEffect(() => {
-        if (tab === "predict") {
-            const list = scannedItems.map(i => {
-                const daysPassed = Math.floor((Date.now() - (i.timestamp || Date.now())) / (1000 * 60 * 60 * 24));
-                return `${i.name}: ${(i.expiryDays !== undefined ? i.expiryDays : 7) - daysPassed} days left`;
-            });
-            console.log("🔮 [NeuralAnalytics] Inventory Status:", list);
-            console.log("🔮 [NeuralAnalytics] Expiring Soon:", expiringSoon);
-        }
-    }, [tab, expiringSoon]);
-
-    const categoriesAtRisk = Array.from(new Set(expiringSoon.map(i => i.category || "其他")));
-    const sustainabilityIndex = 100 - (data.reduce((s, d) => s + d.amount, 0) * 2); // 虛擬惜食指數
-
-    const max = Math.max(...data.map(d => d.amount), 5);
+    const sustainabilityIndex = 100 - (data.reduce((s, d) => s + d.amount, 0) * 2); 
+    const maxVal = Math.max(...data.map(d => d.amount), 5);
     const chartHeight = 80;
 
     return (
         <div className="bg-[#1a4d3d]/30 rounded-[2.5rem] p-6 border border-white/5 mb-8 relative overflow-hidden group">
-            {/* 背景裝飾光暈 - 確保加上 pointer-events-none 避免阻擋點擊 */}
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#00ff88]/5 rounded-full blur-[80px] pointer-events-none" />
 
             <div className="flex items-center justify-between mb-8 relative z-20">
@@ -474,45 +465,62 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
                 {tab === "history" ? (
                     <motion.div
                         key="history"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="relative h-[150px] w-full flex items-end gap-3 px-2 overflow-x-auto no-scrollbar pb-6 pt-10"
-                        ref={(el) => {
-                            if (el) {
-                                // 預設讓他滾動到最右邊（看到最新的紀錄）
-                                setTimeout(() => { el.scrollLeft = el.scrollWidth; }, 100);
-                            }
-                        }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="relative w-full"
                     >
-                        {data.map((d, i) => {
-                            const height = (d.amount / max) * chartHeight;
-                            return (
-                                <div 
-                                    key={i} 
-                                    onClick={() => setSelectedRecord(d.amount > 0 ? d : null)}
-                                    className={`flex-shrink-0 w-8 flex flex-col items-center gap-2 group/bar relative cursor-pointer pt-6 transition-transform ${selectedRecord?.date === d.date ? 'scale-110' : 'hover:scale-105'}`}
-                                >
-                                    {/* 提供懸浮顯示具體數值 */}
-                                    <div className="absolute top-0 opacity-0 group-hover/bar:opacity-100 transition-all duration-300 -translate-y-4 group-hover/bar:-translate-y-2 flex flex-col items-center z-30">
-                                        <span className="bg-[#00ff88] text-[#0f2e24] text-[8px] font-black px-2 py-1 rounded-lg tracking-widest shadow-[0_0_15px_rgba(0,255,136,0.3)] whitespace-nowrap">
-                                            浪費 {d.amount} 個
+                        {/* 分頁控制器 */}
+                        <div className="flex items-center justify-between mb-2 px-1">
+                            <button 
+                                onClick={() => setChartPage(p => p + 1)} 
+                                disabled={startIdx === 0}
+                                className={`p-1.5 rounded-full border border-white/10 transition-all ${startIdx === 0 ? 'opacity-20 grayscale' : 'bg-white/5 hover:bg-white/10 active:scale-90'}`}
+                            >
+                                <ChevronLeft size={16} className="text-white" />
+                            </button>
+                            <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">
+                                {visibleData.length > 0 ? `${visibleData[0].date} ~ ${visibleData[visibleData.length-1].date}` : "無數據"}
+                            </span>
+                            <button 
+                                onClick={() => setChartPage(p => p - 1)} 
+                                disabled={chartPage === 0}
+                                className={`p-1.5 rounded-full border border-white/10 transition-all ${chartPage === 0 ? 'opacity-20 grayscale' : 'bg-white/5 hover:bg-white/10 active:scale-90'}`}
+                            >
+                                <ChevronRight size={16} className="text-white" />
+                            </button>
+                        </div>
+
+                        <div className="h-[140px] w-full flex items-end justify-between px-2 pt-10 pb-4 relative">
+                            {visibleData.map((d, i) => {
+                                const height = (d.amount / maxVal) * chartHeight;
+                                return (
+                                    <div 
+                                        key={i} 
+                                        onClick={() => setSelectedRecord(d.amount > 0 ? d : null)}
+                                        className={`flex-1 flex flex-col items-center gap-2 group/bar relative cursor-pointer transition-transform ${selectedRecord?.date === d.date ? 'scale-110' : 'hover:scale-105'}`}
+                                    >
+                                        <div className="absolute top-0 opacity-0 group-hover/bar:opacity-100 transition-all duration-300 -translate-y-4 group-hover/bar:-translate-y-2 flex flex-col items-center z-30">
+                                            <span className="bg-[#00ff88] text-[#0f2e24] text-[8px] font-black px-2 py-1 rounded-lg tracking-widest shadow-[0_0_15px_rgba(0,255,136,0.3)] whitespace-nowrap">
+                                                浪費 {d.amount}
+                                            </span>
+                                            <div className="w-1.5 h-1.5 bg-[#00ff88] rotate-45 -mt-1" />
+                                        </div>
+                                        <div className="relative w-full flex items-end justify-center">
+                                            <motion.div
+                                                initial={{ height: 0 }}
+                                                animate={{ height }}
+                                                className={`w-4 sm:w-6 rounded-t-full transition-all duration-500 ${selectedRecord?.date === d.date ? 'bg-white brightness-150' : (d.amount >= 3 ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'bg-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.2)]')}`}
+                                            />
+                                        </div>
+                                        <span className={`text-[7px] font-black transition-colors ${selectedRecord?.date === d.date ? 'text-white underline' : 'text-gray-500 group-hover/bar:text-white'}`}>
+                                            {d.date.split("-")[2]}日
                                         </span>
-                                        <div className="w-1.5 h-1.5 bg-[#00ff88] rotate-45 -mt-1" />
                                     </div>
-                                    <div className="relative w-full flex items-end justify-center">
-                                        <motion.div
-                                            initial={{ height: 0 }}
-                                            animate={{ height }}
-                                            className={`w-full max-w-[12px] rounded-t-full transition-all duration-500 group-hover/bar:brightness-150 ${selectedRecord?.date === d.date ? 'bg-white brightness-150' : (d.amount >= 3 ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'bg-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.2)]')}`}
-                                        />
-                                    </div>
-                                    <span className={`text-[7px] font-black transition-colors ${selectedRecord?.date === d.date ? 'text-white underline' : 'text-gray-500 group-hover/bar:text-white'}`}>{d.date.split("-").slice(1).join("/")}(丟)</span>
-                                </div>
-                            );
-                        })}
-                        <div className="absolute top-2 left-0 text-[7px] font-black text-gray-500/50 uppercase tracking-widest">每日食材浪費監控紀錄 (Waste Log)</div>
-                        <div className="absolute bottom-6 left-0 min-w-full w-max h-[1px] bg-white/5 -z-10" />
+                                );
+                            })}
+                            <div className="absolute bottom-4 left-0 w-full h-[1px] bg-white/5 -z-10" />
+                            <div className="absolute top-2 left-0 text-[7px] font-black text-gray-500/50 uppercase tracking-widest">週損耗趨勢報表</div>
+                        </div>
                     </motion.div>
                 ) : (
                     <motion.div
