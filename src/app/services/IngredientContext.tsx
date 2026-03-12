@@ -109,7 +109,14 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
         if (savedRecs) try { setRecommendedRecipes(JSON.parse(savedRecs)); } catch (e) { }
         if (savedSettings) try { setSettings(JSON.parse(savedSettings)); } catch (e) { }
         if (savedBookmarked) try { setSavedRecipes(JSON.parse(savedBookmarked)); } catch (e) { }
-        if (savedWaste) try { setWasteHistory(JSON.parse(savedWaste)); } catch (e) { }
+        if (savedWaste) {
+            try { 
+                const parsed = JSON.parse(savedWaste);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setWasteHistory(parsed); 
+                }
+            } catch (e) { }
+        }
     }, []);
 
     // Notification check effect

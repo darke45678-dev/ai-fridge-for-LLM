@@ -428,12 +428,15 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
     const [tab, setTab] = useState<"history" | "predict">("history");
     const [chartPage, setChartPage] = useState(0); // 0 = 當週, 1 = 前一週...
     const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
-
+    
+    // 確保 data 始終是陣列
+    const chartData = Array.isArray(data) ? data : [];
+    
     // 每頁顯示 7 天
     const PAGE_SIZE = 7;
-    const endIdx = data.length - (chartPage * PAGE_SIZE);
+    const endIdx = chartData.length - (chartPage * PAGE_SIZE);
     const startIdx = Math.max(0, endIdx - PAGE_SIZE);
-    const visibleData = data.slice(startIdx, endIdx);
+    const visibleData = chartData.slice(Math.max(0, startIdx), Math.max(0, endIdx));
 
     // 計算預測浪費 (未來 3 天內過期的)
     const expiringSoon = scannedItems.filter(i => {
@@ -442,9 +445,16 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
         return daysLeft >= 0 && daysLeft <= 3 && !i.isSpoiled; 
     });
 
-    const sustainabilityIndex = 100 - (data.reduce((s, d) => s + d.amount, 0) * 2); 
-    const maxVal = Math.max(...data.map(d => d.amount), 5);
+    const totalWaste = chartData.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    const sustainabilityIndex = Math.max(0, 100 - (totalWaste * 2)); 
+    const maxVal = Math.max(...chartData.map(d => Number(d.amount) || 0), 2);
     const chartHeight = 80;
+
+    // 開發者日誌：協助追蹤數據流
+    useEffect(() => {
+        console.log("📊 [Analytics] Total Data Points:", chartData.length);
+        console.log("📊 [Analytics] Current Page Data:", visibleData);
+    }, [chartPage, chartData, visibleData]);
 
     return (
         <div className="bg-[#1a4d3d]/30 rounded-[2.5rem] p-6 border border-white/5 mb-8 relative overflow-hidden group">
@@ -494,8 +504,8 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
                         </div>
 
                         <div className="h-[140px] w-full flex items-end justify-between px-2 pt-10 pb-4 relative">
-                            {visibleData.map((d, i) => {
-                                const height = (d.amount / maxVal) * chartHeight;
+                            {visibleData.length > 0 ? visibleData.map((d, i) => {
+                                const height = (Number(d.amount) / maxVal) * chartHeight;
                                 return (
                                     <div 
                                         key={i} 
@@ -511,7 +521,7 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
                                         <div className="relative w-full flex items-end justify-center">
                                             <motion.div
                                                 initial={{ height: 0 }}
-                                                animate={{ height }}
+                                                animate={{ height: Math.max(2, height) }}
                                                 className={`w-4 sm:w-6 rounded-t-full transition-all duration-500 ${selectedRecord?.date === d.date ? 'bg-white brightness-150' : (d.amount >= 3 ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'bg-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.2)]')}`}
                                             />
                                         </div>
@@ -520,7 +530,11 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
                                         </span>
                                     </div>
                                 );
-                            })}
+                            }) : (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center pt-8">
+                                    <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">無可顯示之數據</div>
+                                </div>
+                            )}
                             <div className="absolute bottom-4 left-0 w-full h-[1px] bg-white/5 -z-10" />
                             <div className="absolute top-2 left-0 text-[7px] font-black text-gray-500/50 uppercase tracking-widest">週損耗趨勢報表</div>
                         </div>
