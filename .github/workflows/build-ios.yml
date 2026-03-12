@@ -1,0 +1,55 @@
+name: Build iOS IPA (Standalone)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: 📥 擷取專案代碼 (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 📦 安裝 Web 依賴項 (Node.js)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: 🛠️ 通訊建構協議 (Install & Build)
+        run: |
+          npm install
+          npm run build
+
+      - name: 🧬 注入 iOS 原生基因 (Capacitor Sync)
+        run: |
+          npx cap sync ios
+
+      - name: 🏗️ 啟動 Xcode 雲端編譯 (Build App)
+        run: |
+          # 這裡執行編譯，並指定輸出路徑到 build 資料夾
+          set -o pipefail
+          xcodebuild -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -sdk iphoneos \
+            -configuration Debug \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: 📦 打包成 .ipa 檔 (Windows 專用安裝格式)
+        run: |
+          # 建立 Payload 資料夾，這是 ipa 檔案的標準格式
+          mkdir -p Payload
+          # 將編譯好的 .app 複製進去
+          cp -r build/Build/Products/Debug-iphoneos/App.app Payload/
+          # 壓縮成 .ipa
+          zip -r KitchenAI.ipa Payload
+          
+      - name: 📁 上傳安裝資源 (Upload Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: KitchenAI-iOS-Standalone-IPA
+          path: KitchenAI.ipa
