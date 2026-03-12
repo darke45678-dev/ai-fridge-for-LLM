@@ -273,15 +273,19 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
     };
 
     const clearAll = () => {
-        // 重置所有關鍵數據，實現完整系統初始化
+        // 第一步：物理層級清空所有 localStorage (最徹底的解決方案)
+        localStorage.clear();
+        
+        // 第二步：同步重置所有記憶體狀態
         setScannedItems([]);
         setRecommendedRecipes([]);
         setTempDetections([]);
         setSavedRecipes([]);
         setWasteHistory([]);
         setSelectedIds([]);
-        // 通知使用者已完成重置
-        notificationService.send("系統重置完成", "所有庫存、統計數據與收藏食譜已全數清空。");
+        
+        // 第三步：強制重新整理網頁，確保所有 Context 與快取完全刷新
+        window.location.reload();
     };
 
     const updateSettings = (newSettings: Partial<{ notifications: boolean; neuralOptimized: boolean; confidenceThreshold: number }>) => {
