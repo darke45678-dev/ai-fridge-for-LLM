@@ -349,7 +349,7 @@ export function Inventory() {
 
             <InventoryStats freshItems={scannedItems.length - expiredCount} expiredItems={expiredCount} />
 
-            {showForm && (<AddEntryForm onAdd={addItem} onDismiss={() => setShowForm(false)} categories={["全部", "蔬菜", "水果", "乳製品", "肉類", "五穀", "其他"]} />)}
+            {showForm && (<AddEntryForm onAdd={(item) => addItem(item, "manual")} onDismiss={() => setShowForm(false)} categories={["全部", "蔬菜", "水果", "乳製品", "肉類", "五穀", "其他"]} />)}
 
             <div className="px-6 py-4">
                 <h3 className="font-black text-xs uppercase text-white/30 mb-4 px-2">存貨紀錄 ({filtered.length})</h3>
@@ -559,7 +559,7 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
                                             <motion.div
                                                 initial={{ height: 0 }}
                                                 animate={{ height: Math.max(2, height) }}
-                                                className={`w-4 sm:w-6 rounded-t-full transition-all duration-500 ${selectedDate === d.date ? 'bg-white brightness-150' : (d.amount >= 3 ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'bg-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.2)]')}`}
+                                                className={`w-4 sm:w-6 rounded-t-full transition-all duration-500 ${selectedDate === d.date ? 'bg-white brightness-150' : 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]'}`}
                                             />
                                         </div>
                                         <span className={`text-[7px] font-black transition-colors ${selectedDate === d.date ? 'text-white underline' : 'text-gray-500 group-hover/bar:text-white'}`}>

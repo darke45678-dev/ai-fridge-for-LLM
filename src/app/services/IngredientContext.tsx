@@ -34,7 +34,7 @@ interface IngredientContextType {
     settings: { notifications: boolean; neuralOptimized: boolean; confidenceThreshold: number };
     wasteHistory: WasteRecord[];
     savedRecipes: any[];
-    addItem: (item: Partial<ScannedItem>) => void;
+    addItem: (item: Partial<ScannedItem>, source?: "ai" | "manual") => void;
     updateQuantity: (id: string, delta: number) => void;
     updateItem: (id: string, updates: Partial<ScannedItem>) => void;
     removeItem: (id: string) => void;
@@ -133,8 +133,9 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
 
     /**
      * 新增單一食材進入庫存
+     * @param source - 資料來源，可選 'ai' 或 'manual'。預設為 'ai'。
      */
-    const addItem = (item: Partial<ScannedItem>) => {
+    const addItem = (item: Partial<ScannedItem>, source: "ai" | "manual" = "ai") => {
         const now = Date.now();
         const uniqueId = item.id || `${now}-${Math.random().toString(36).substr(2, 9)}`;
         const newItem: ScannedItem = {
@@ -162,18 +163,20 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
             return [...prev, newItem];
         });
 
-        // Update temp detections (real-time preview)
-        setTempDetections(prev => {
-            const existing = prev.find(i => i.name.toLowerCase() === newItem.name.toLowerCase() && i.isSpoiled === newItem.isSpoiled && i.storageType === newItem.storageType);
-            if (existing) {
-                return prev.map(i =>
-                    i.id === existing.id
-                        ? { ...i, quantity: i.quantity + newItem.quantity, timestamp: now }
-                        : i
-                );
-            }
-            return [...prev, newItem];
-        });
+        // Update temp detections (real-time preview) - ONLY FOR AI
+        if (source === "ai") {
+            setTempDetections(prev => {
+                const existing = prev.find(i => i.name.toLowerCase() === newItem.name.toLowerCase() && i.isSpoiled === newItem.isSpoiled && i.storageType === newItem.storageType);
+                if (existing) {
+                    return prev.map(i =>
+                        i.id === existing.id
+                            ? { ...i, quantity: i.quantity + newItem.quantity, timestamp: now }
+                            : i
+                    );
+                }
+                return [...prev, newItem];
+            });
+        }
 
         // Auto-select ONLY IF NOT SPOILED
         if (!newItem.isSpoiled) {
