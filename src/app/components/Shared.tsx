@@ -41,11 +41,7 @@ export function PageHeader({ showBackButton = false, title = "KITCHEN AI", right
             </h1>
 
             <div className="flex items-center gap-2">
-                {rightAction || (
-                    <button className="p-2 -mr-2 hover:bg-white/5 rounded-full transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-gray-600 border border-gray-500 shadow-inner" />
-                    </button>
-                )}
+                {rightAction}
             </div>
         </header>
     );
