@@ -27,7 +27,12 @@ export function CameraView({ videoRef }: CameraViewProps) {
     const sessionRef = useRef<any>(null);
 
     // 類別名稱對照表 (由 YOLO 模型訓練時決定)
-    const CLASS_NAMES = ["tomato", "spinach", "egg", "eggplant", "rotten"];
+    // 類別名稱對照表 (由您的新版 YOLO 權重決定)
+    const CLASS_NAMES = [
+        "apple", "banana", "cabbage", "meat", "orange", 
+        "rotten apple", "rotten banana", "rotten cabbage", 
+        "rotten meat", "rotten orange", "rotten spinach", "spinach"
+    ];
 
     // 初始化：加載 ONNX 模型
     useEffect(() => {
@@ -128,12 +133,21 @@ export function CameraView({ videoRef }: CameraViewProps) {
                     const x2 = (cx + w / 2) / 640;
                     const y2 = (cy + h / 2) / 640;
 
+                    const name = CLASS_NAMES[classId];
+                    const isSpoiled = name.toLowerCase().includes("rotten");
+                    
+                    // 根據名稱歸併大類
+                    let category = "其他";
+                    if (name.includes("apple") || name.includes("orange") || name.includes("banana")) category = "水果";
+                    if (name.includes("cabbage") || name.includes("spinach")) category = "蔬菜";
+                    if (name.includes("meat")) category = "肉類";
+
                     detections.push({
-                        name: CLASS_NAMES[classId],
+                        name: name,
                         confidence: maxConf,
                         box: [x1, y1, x2, y2],
-                        isSpoiled: CLASS_NAMES[classId] === "rotten",
-                        category: classId === 1 ? "蔬菜" : "其他"
+                        isSpoiled: isSpoiled,
+                        category: category
                     });
 
                     // 為了範例流暢度，我們先只抓最高信心的一個
