@@ -233,6 +233,9 @@ export function Inventory() {
     const [editingItem, setEditingItem] = useState<any>(null); // 當前正在編輯的食材對象
     const [isListening, setIsListening] = useState(false); // 語音辨識狀態 (啟動/停止)
 
+    const categories = ["全部", "蔬菜", "水果", "乳製品", "肉類", "五穀", "其他"];
+    const [catPage, setCatPage] = useState(0);
+
     const startVoiceInput = () => {
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (!SpeechRecognition) return alert("您的瀏覽器不支援語音辨識功能！");
@@ -290,10 +293,34 @@ export function Inventory() {
                     </button>
                 </div>
 
-                <div className="flex gap-2 overflow-x-auto no-scrollbar mt-4">
-                    {["全部", "蔬菜", "水果", "乳製品", "肉類", "五穀", "其他"].map(c => (
-                        <button key={c} onClick={() => setCat(c)} className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase whitespace-nowrap border transition-colors ${cat === c ? (storageTab === 'fridge' ? "bg-[#00ff88] text-[#0f2e24] border-[#00ff88]" : "bg-blue-400 text-[#0f2e24] border-blue-400") : "bg-white/5 text-gray-500 border-white/10"}`}>{c}</button>
-                    ))}
+                <div className="flex items-center gap-2 mt-4">
+                    <button 
+                        onClick={() => setCatPage(p => Math.max(0, p - 1))}
+                        disabled={catPage === 0}
+                        className={`p-2 rounded-xl border border-white/10 transition-all ${catPage === 0 ? 'opacity-20 grayscale' : 'bg-white/5 hover:bg-white/10 active:scale-90'}`}
+                    >
+                        <ChevronLeft size={14} className="text-white" />
+                    </button>
+                    
+                    <div className="flex-1 flex gap-2 overflow-hidden items-center justify-start">
+                        {categories.slice(catPage * 4, (catPage + 1) * 4).map(c => (
+                            <button 
+                                key={c} 
+                                onClick={() => setCat(c)} 
+                                className={`flex-1 px-2 py-2.5 rounded-xl text-[10px] font-black uppercase whitespace-nowrap border transition-all duration-300 ${cat === c ? (storageTab === 'fridge' ? "bg-[#00ff88] text-[#0f2e24] border-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.3)] scale-105" : "bg-blue-400 text-[#0f2e24] border-blue-400 shadow-[0_0_15px_rgba(96,165,250,0.3)] scale-105") : "bg-white/5 text-gray-500 border-white/10"}`}
+                            >
+                                {c}
+                            </button>
+                        ))}
+                    </div>
+
+                    <button 
+                        onClick={() => setCatPage(p => Math.min(Math.ceil(categories.length / 4) - 1, p + 1))}
+                        disabled={(catPage + 1) * 4 >= categories.length}
+                        className={`p-2 rounded-xl border border-white/10 transition-all ${(catPage + 1) * 4 >= categories.length ? 'opacity-20 grayscale' : 'bg-white/5 hover:bg-white/10 active:scale-90'}`}
+                    >
+                        <ChevronRight size={14} className="text-white" />
+                    </button>
                 </div>
             </div>
 
