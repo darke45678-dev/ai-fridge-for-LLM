@@ -26,7 +26,6 @@ export function CameraView({ videoRef }: CameraViewProps) {
     const [modelLoaded, setModelLoaded] = useState(false);
     const sessionRef = useRef<any>(null);
 
-    // 類別名稱對照表 (由 YOLO 模型訓練時決定)
     // 類別名稱對照表 (由您的新版 YOLO 權重決定)
     const CLASS_NAMES = [
         "apple", "banana", "cabbage", "meat", "orange", 
@@ -101,25 +100,30 @@ export function CameraView({ videoRef }: CameraViewProps) {
             // 3. 執行推理 (Run Inference)
             const feeds = { [sessionRef.current.inputNames[0]]: tensor };
             const results = await sessionRef.current.run(feeds);
-            const output = results[sessionRef.current.outputNames[0]].data as Float32Array;
+            const outputView = results[sessionRef.current.outputNames[0]];
+            const output = outputView.data as Float32Array;
+            const dims = outputView.dims;
 
-            // 4. 解析輸出 (Post-processing - Simplified YOLOv8 parser)
-            // YOLOv8 輸出格式通常為 [1, 16, 8400] (box=4 + classes=12)
+            // 4. 解析輸出 (Post-processing - Enhanced YOLOv8 parser)
             const detections: any[] = [];
-            const CONF_THRESHOLD = settings.confidenceThreshold; // 使用系統設定的靈敏度
+            const CONF_THRESHOLD = settings.confidenceThreshold;
             
-            console.log(`🧠 開始解析推理結果... 輸出長度: ${output.length}, 設定門檻: ${CONF_THRESHOLD}`);
-            let totalProcessed = 0;
+            console.log(`🧠 推理完成。輸出維度: [${dims.join(',')}], 資料長度: ${output.length}, 門檻: ${String(CONF_THRESHOLD)}`);
+            
+            const isTransposed = dims[1] > dims[2]; // 自動判斷行列排序 (YOLOv8 [1, 16, 8400] vs [1, 8400, 16])
+            const numAnchors = isTransposed ? dims[1] : dims[2];
+            const numChannels = isTransposed ? dims[2] : dims[1];
+            
             let highestSeen = 0;
 
-            // 這裡進行簡易的解碼演算法
-            for (let i = 0; i < 8400; i++) {
+            for (let i = 0; i < numAnchors; i++) {
                 let maxConf = 0;
                 let classId = -1;
 
-                // 找出該點最大信心的類別 (跳過前 4 個座標值)
+                // 找出該點最大信心的類別
                 for (let c = 0; c < CLASS_NAMES.length; c++) {
-                    const conf = output[8400 * (4 + c) + i];
+                    const idx = isTransposed ? i * numChannels + (c + 4) : (c + 4) * numAnchors + i;
+                    const conf = output[idx];
                     if (conf > maxConf) {
                         maxConf = conf;
                         classId = c;
@@ -129,10 +133,10 @@ export function CameraView({ videoRef }: CameraViewProps) {
                 if (maxConf > highestSeen) highestSeen = maxConf;
 
                 if (maxConf > CONF_THRESHOLD) {
-                    const cx = output[i];
-                    const cy = output[8400 + i];
-                    const w = output[8400 * 2 + i];
-                    const h = output[8400 * 3 + i];
+                    const cx = output[isTransposed ? i * numChannels : i];
+                    const cy = output[isTransposed ? i * numChannels + 1 : numAnchors + i];
+                    const w = output[isTransposed ? i * numChannels + 2 : numAnchors * 2 + i];
+                    const h = output[isTransposed ? i * numChannels + 3 : numAnchors * 3 + i];
 
                     const x1 = (cx - w / 2) / 640;
                     const y1 = (cy - h / 2) / 640;
@@ -142,7 +146,6 @@ export function CameraView({ videoRef }: CameraViewProps) {
                     const name = CLASS_NAMES[classId];
                     const isSpoiled = name.toLowerCase().includes("rotten");
                     
-                    // 根據名稱歸併大類
                     let category = "其他";
                     if (name.includes("apple") || name.includes("orange") || name.includes("banana")) category = "水果";
                     if (name.includes("cabbage") || name.includes("spinach")) category = "蔬菜";
