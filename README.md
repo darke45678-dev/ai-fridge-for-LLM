@@ -1,6 +1,6 @@
-# AI 智慧廚房 (AI Fridge & Kitchen Brain)
+# AI Fridge for LLM (Culinary Intelligence)
 
-這是一個結合 YOLOv8 即時物件辨識與 Gemini AI 食譜合成的智慧廚房管理助手。
+這是專為 LLM 整合與網頁端高效視覺辨識優化的冰箱管理系統。
 
 ## 📖 快速開始
 關於如何在您的電腦上部署、安裝環境、以及啟動測試，請參考詳細的：

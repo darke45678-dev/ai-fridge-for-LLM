@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import compression from 'vite-plugin-compression'
 
 export default defineConfig({
-  base: "/ios-fridge-lite/",
+  base: "/ai-fridge-for-LLM/",
   plugins: [
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used  do not remove them
@@ -17,9 +17,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['apple-icon.png', 'vite.svg'],
       manifest: {
-        name: 'KITCHEN AI LITE - Culinary Intelligence',
-        short_name: 'KitchenLite',
-        description: 'Lightweight AI-powered grocery scanning and recipe intelligence system.',
+        name: 'AI Fridge for LLM - Culinary Intelligence',
+        short_name: 'FridgeLLM',
+        description: 'AI-powered fridge management optimized for LLM integration and optimized vision performance.',
         theme_color: '#00ff88',
         background_color: '#0f2e24',
         display: 'standalone',

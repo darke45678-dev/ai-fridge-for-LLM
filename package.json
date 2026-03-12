@@ -1,9 +1,9 @@
 {
-  "name": "ios-fridge-lite",
+  "name": "ai-fridge-for-llm",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "homepage": "https://darke45678-dev.github.io/ios-fridge-lite/",
+  "homepage": "https://darke45678-dev.github.io/ai-fridge-for-LLM/",
   "scripts": {
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
@@ -11,10 +11,6 @@
     "dev": "vite"
   },
   "dependencies": {
-    "@capacitor/android": "^8.2.0",
-    "@capacitor/cli": "^8.2.0",
-    "@capacitor/core": "^8.2.0",
-    "@capacitor/ios": "^8.2.0",
     "framer-motion": "^12.35.0",
     "lucide-react": "0.577.0",
     "motion": "12.35.0",
