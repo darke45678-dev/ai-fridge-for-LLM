@@ -16,7 +16,7 @@ jobs:
       - name: 📦 安裝 Web 依賴項 (Node.js)
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: 🛠️ 通訊建構協議 (Install & Build)
         env:
