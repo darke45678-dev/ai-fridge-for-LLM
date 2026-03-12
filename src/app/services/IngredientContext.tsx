@@ -23,6 +23,7 @@ export interface ScannedItem {
 export interface WasteRecord {
     date: string;
     amount: number; // in grams or items
+    items?: string[]; // 具體浪費的食材名稱清單
 }
 
 interface IngredientContextType {
@@ -30,7 +31,7 @@ interface IngredientContextType {
     recommendedRecipes: any[];
     tempDetections: ScannedItem[];
     selectedIds: string[];
-    settings: { notifications: boolean; darkMode: boolean };
+    settings: { notifications: boolean; neuralOptimized: boolean; confidenceThreshold: number };
     wasteHistory: WasteRecord[];
     addItem: (item: Partial<ScannedItem>) => void;
     updateQuantity: (id: string, delta: number) => void;
@@ -42,7 +43,7 @@ interface IngredientContextType {
     clearAll: () => void;
     setRecipes: (recipes: any[]) => void;
     clearTempDetections: () => void;
-    updateSettings: (settings: Partial<{ notifications: boolean; darkMode: boolean }>) => void;
+    updateSettings: (settings: Partial<{ notifications: boolean; neuralOptimized: boolean; confidenceThreshold: number }>) => void;
 }
 
 /**
@@ -64,13 +65,15 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
     const [recommendedRecipes, setRecommendedRecipes] = useState<any[]>([]);
     const [tempDetections, setTempDetections] = useState<ScannedItem[]>([]);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
-    const [settings, setSettings] = useState({ notifications: true, darkMode: true });
+    const [settings, setSettings] = useState({ notifications: true, neuralOptimized: true, confidenceThreshold: 0.25 });
 
     // Mock 30 days of history
     const [wasteHistory] = useState<WasteRecord[]>(() => {
         const records: WasteRecord[] = [];
         const today = new Date();
         const baseAmounts = [2, 0, 3, 1, 0, 4, 1, 0, 2, 0, 0, 1, 0, 5, 2, 0, 1, 1, 0, 3, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 2];
+
+        const wasteCandidates = ["番茄", "雞蛋", "菠菜", "茄子", "牛奶", "牛肉", "蘋果", "優格"];
 
         for (let i = 29; i >= 0; i--) {
             const d = new Date(today);
@@ -79,10 +82,16 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
             const m = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
 
+            const amount = baseAmounts[i % baseAmounts.length];
+            const items = amount > 0 
+                ? Array.from({ length: amount }, () => wasteCandidates[Math.floor(Math.random() * wasteCandidates.length)])
+                : [];
+
             // 使用一些假資料的規律，包含0、一些小浪費、偶爾較大浪費
             records.push({
                 date: `${y}-${m}-${day}`,
-                amount: baseAmounts[i % baseAmounts.length]
+                amount: amount,
+                items: items
             });
         }
         return records;
@@ -229,7 +238,7 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
         setTempDetections([]);
     };
 
-    const updateSettings = (newSettings: Partial<{ notifications: boolean }>) => {
+    const updateSettings = (newSettings: Partial<{ notifications: boolean; neuralOptimized: boolean; confidenceThreshold: number }>) => {
         setSettings(prev => ({ ...prev, ...newSettings }));
     };
 

@@ -416,7 +416,7 @@ export function Inventory() {
 
 // --- Neural Analytics Dashboard ---
 /**
- * 神經網路數據面板 (NeuralAnalyticsDashboard)
+ * 數據分析面板 (AnalyticsDashboard)
  * 應用程式最核心的數據視覺化區域，展示兩個維度：
  * 1. 歷史 (History): 將使用者過去 30 天內丟棄/浪費的食材量，以圖表型態渲染。
  * 2. 預測 (Predict): 基於所有食材的保存期限進行推測，以比例條與高危險清單的形式，警告用戶哪些食材即將浪費。
@@ -424,6 +424,7 @@ export function Inventory() {
 function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scannedItems: ScannedItem[] }) {
     const [tab, setTab] = useState<"history" | "predict">("history");
     const [activeZone, setActiveZone] = useState<"risk" | "warning" | "safe" | null>(null);
+    const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
 
     // 計算預測浪費 (未來 3 天內過期的)
     const expiringSoon = scannedItems.filter(i => {
@@ -457,10 +458,10 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
 
             <div className="flex items-center justify-between mb-8 relative z-20">
                 <div>
-                    <h3 className="text-[10px] font-black text-[#00ff88] uppercase tracking-[0.2em] mb-1">數據統計 (Data Statistics)</h3>
+                    <h3 className="text-[10px] font-black text-[#00ff88] uppercase tracking-[0.2em] mb-1">食材損耗分析 (Waste Analytics)</h3>
                     <div className="flex items-center gap-2">
                         <div className="text-xl font-black text-white tracking-tighter">{sustainabilityIndex}%</div>
-                        <div className="text-[8px] font-bold text-gray-500 uppercase tracking-widest border-l border-white/10 pl-2">惜食達成率</div>
+                        <div className="text-[8px] font-bold text-gray-500 uppercase tracking-widest border-l border-white/10 pl-2">食材利用效率</div>
                     </div>
                 </div>
                 <div className="flex bg-[#0f2e24] p-1 rounded-xl border border-white/10">
@@ -476,7 +477,7 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="relative h-[130px] w-full flex items-end gap-3 px-2 overflow-x-auto no-scrollbar pb-6 pt-2"
+                        className="relative h-[150px] w-full flex items-end gap-3 px-2 overflow-x-auto no-scrollbar pb-6 pt-10"
                         ref={(el) => {
                             if (el) {
                                 // 預設讓他滾動到最右邊（看到最新的紀錄）
@@ -487,25 +488,30 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
                         {data.map((d, i) => {
                             const height = (d.amount / max) * chartHeight;
                             return (
-                                <div key={i} className="flex-shrink-0 w-8 flex flex-col items-center gap-2 group/bar relative cursor-pointer pt-6">
+                                <div 
+                                    key={i} 
+                                    onClick={() => setSelectedRecord(d.amount > 0 ? d : null)}
+                                    className={`flex-shrink-0 w-8 flex flex-col items-center gap-2 group/bar relative cursor-pointer pt-6 transition-transform ${selectedRecord?.date === d.date ? 'scale-110' : 'hover:scale-105'}`}
+                                >
                                     {/* 提供懸浮顯示具體數值 */}
-                                    <div className="absolute top-0 opacity-0 group-hover/bar:opacity-100 transition-all duration-300 -translate-y-2 group-hover/bar:translate-y-0 flex flex-col items-center">
-                                        <span className="bg-[#0f2e24] border border-white/20 text-white text-[8px] font-black px-2 py-1 rounded-lg tracking-widest shadow-xl">
-                                            {d.amount} 個
+                                    <div className="absolute top-0 opacity-0 group-hover/bar:opacity-100 transition-all duration-300 -translate-y-4 group-hover/bar:-translate-y-2 flex flex-col items-center z-30">
+                                        <span className="bg-[#00ff88] text-[#0f2e24] text-[8px] font-black px-2 py-1 rounded-lg tracking-widest shadow-[0_0_15px_rgba(0,255,136,0.3)] whitespace-nowrap">
+                                            浪費 {d.amount} 個
                                         </span>
-                                        <div className="w-1 h-1 bg-white/20 rotate-45 -mt-0.5" />
+                                        <div className="w-1.5 h-1.5 bg-[#00ff88] rotate-45 -mt-1" />
                                     </div>
                                     <div className="relative w-full flex items-end justify-center">
                                         <motion.div
                                             initial={{ height: 0 }}
                                             animate={{ height }}
-                                            className={`w-full max-w-[12px] rounded-t-full transition-all duration-500 group-hover/bar:brightness-150 ${d.amount >= 3 ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'bg-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.2)]'}`}
+                                            className={`w-full max-w-[12px] rounded-t-full transition-all duration-500 group-hover/bar:brightness-150 ${selectedRecord?.date === d.date ? 'bg-white brightness-150' : (d.amount >= 3 ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 'bg-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.2)]')}`}
                                         />
                                     </div>
-                                    <span className="text-[7px] font-black text-gray-500 group-hover/bar:text-white transition-colors">{d.date.split("-").slice(1).join("/")}</span>
+                                    <span className={`text-[7px] font-black transition-colors ${selectedRecord?.date === d.date ? 'text-white underline' : 'text-gray-500 group-hover/bar:text-white'}`}>{d.date.split("-").slice(1).join("/")}(丟)</span>
                                 </div>
                             );
                         })}
+                        <div className="absolute top-2 left-0 text-[7px] font-black text-gray-500/50 uppercase tracking-widest">每日食材浪費監控紀錄 (Waste Log)</div>
                         <div className="absolute bottom-6 left-0 min-w-full w-max h-[1px] bg-white/5 -z-10" />
                     </motion.div>
                 ) : (
@@ -619,19 +625,48 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
                 )}
             </AnimatePresence>
 
+            {/* 歷史細節顯示區 */}
+            <AnimatePresence>
+                {tab === "history" && selectedRecord && (
+                    <motion.div 
+                        initial={{ height: 0, opacity: 0 }} 
+                        animate={{ height: "auto", opacity: 1 }} 
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="mt-4 pt-4 border-t border-white/5 bg-black/20 rounded-2xl p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="text-[8px] font-black text-[#00ff88] uppercase tracking-widest flex items-center gap-2">
+                                    <Clock size={10} /> {selectedRecord.date} 浪費清單
+                                </div>
+                                <button onClick={() => setSelectedRecord(null)} className="text-[8px] font-black text-gray-500 uppercase">返回</button>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {selectedRecord.items?.map((item: string, idx: number) => (
+                                    <div key={idx} className="bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                                        <span className="text-[10px] font-black text-white uppercase">{item}</span>
+                                    </div>
+                                )) || <div className="text-[9px] text-gray-500 font-bold uppercase py-2">無具體品項記錄</div>}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* 底部摘要 */}
             <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <div className="text-center border-r border-white/10 pr-4">
                         <div className="text-[10px] font-black text-white">{data.reduce((s, d) => s + d.amount, 0)}</div>
-                        <div className="text-[6px] font-bold text-gray-500 uppercase">本週損耗</div>
+                        <div className="text-[6px] font-bold text-gray-500 uppercase">本週浪費</div>
                     </div>
                     <div>
                         <div className="text-[10px] font-black text-[#00ff88]">+{Math.floor(sustainabilityIndex / 10)}</div>
-                        <div className="text-[6px] font-bold text-gray-500 uppercase">惜食獎勵</div>
+                        <div className="text-[6px] font-bold text-gray-500 uppercase">環保等級</div>
                     </div>
                 </div>
-                <div className="text-[8px] font-black text-white/20 uppercase tracking-widest">Protocol: Waste_Zero.v1</div>
+                <div className="text-[8px] font-black text-white/20 uppercase tracking-widest">系統狀態: 運行中</div>
             </div>
         </div>
     );
@@ -645,58 +680,128 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
  * 2. 系統外觀深色模式切換 (Dark Mode toggle - 但整個系統目前強制採用暗色賽博龐克為主)
  */
 export function Profile() {
-    const { settings, updateSettings } = useIngredients();
+    const { settings, updateSettings, clearAll, scannedItems } = useIngredients();
+    const nav = useNavigate();
 
     return (
-        <div className="pb-24 px-6 py-8"><PageHeader title="個人設定" />
-            <div className="flex flex-col items-center mb-10">
-                <div className="w-28 h-28 rounded-full bg-[#1a4d3d] border-4 border-[#00ff88]/20 flex items-center justify-center shadow-2xl mb-6">
-                    <User size={48} className="text-[#00ff88]" strokeWidth={1} />
+        <div className="pb-24 px-6 py-8">
+            <PageHeader title="個人設定" />
+            
+            <div className="flex flex-col items-center mb-10 mt-4">
+                <div className="w-28 h-28 rounded-full bg-[#1a4d3d] border-4 border-[#00ff88]/20 flex items-center justify-center shadow-2xl mb-6 relative">
+                    <div className="absolute inset-0 bg-[#00ff88]/5 rounded-full animate-pulse" />
+                    <User size={48} className="text-[#00ff88] relative z-10" strokeWidth={1} />
                 </div>
-                <h2 className="text-lg font-black text-white uppercase mb-2">AI 廚房大腦</h2>
+                <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-1">使用者中心</h2>
+                <div className="text-[10px] font-bold text-[#00ff88] uppercase tracking-widest opacity-60">已認證：首席美食品味家</div>
             </div>
 
-            <div className="bg-[#1a4d3d]/20 p-6 rounded-[2rem] border border-white/5 mb-8">
-                <h3 className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-6 px-1">系統設定</h3>
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+            {/* Neural Matrix Settings */}
+            <div className="bg-[#1a4d3d]/20 p-6 rounded-[2.5rem] border border-white/5 mb-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#00ff88]/5 rounded-full blur-3xl pointer-events-none" />
+                
+                <h3 className="text-[10px] font-black text-[#00ff88] uppercase tracking-widest mb-6 px-1 flex items-center gap-2">
+                    <Settings size={12} /> 系統功能設定 (System Settings)
+                </h3>
+                
+                <div className="space-y-6">
+                    {/* Notification Toggle */}
+                    <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-[#00ff88]/10 flex items-center justify-center"><BookOpen size={18} className="text-[#00ff88]" /></div>
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center"><AlertTriangle size={18} className="text-blue-400" /></div>
                             <div>
-                                <div className="text-[10px] font-black text-white uppercase">通知</div>
-                                <div className="text-[8px] font-bold text-gray-500 uppercase">接收過期與庫存示警</div>
+                                <div className="text-[10px] font-black text-white uppercase">食材過期提醒</div>
+                                <div className="text-[8px] font-bold text-gray-500 uppercase">智慧監測食材效期並發送通知</div>
                             </div>
                         </div>
                         <button
                             onClick={async () => {
                                 const newSetting = !settings.notifications;
-                                if (newSetting) {
-                                    await notificationService.requestPermission();
-                                }
+                                if (newSetting) await notificationService.requestPermission();
                                 updateSettings({ notifications: newSetting });
                             }}
-                            className={`w-12 h-6 rounded-full relative transition-all duration-300 ${settings.notifications ? "bg-[#00ff88]" : "bg-white/10"}`}
+                            className={`w-12 h-6 rounded-full relative transition-all duration-500 ${settings.notifications ? "bg-[#00ff88]" : "bg-white/10"}`}
                         >
                             <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 ${settings.notifications ? "left-7" : "left-1"}`} />
                         </button>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                    {/* Neural Optimization Toggle */}
+                    <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center"><Moon size={18} className="text-purple-400" /></div>
+                            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center"><Sparkles size={18} className="text-purple-400" /></div>
                             <div>
-                                <div className="text-[10px] font-black text-white uppercase">深色模式</div>
-                                <div className="text-[8px] font-bold text-gray-500 uppercase">切換應用程式語意顏色</div>
+                                <div className="text-[10px] font-black text-white uppercase">掃描性能優化</div>
+                                <div className="text-[8px] font-bold text-gray-500 uppercase">提升物體辨識的反應速度</div>
                             </div>
                         </div>
                         <button
-                            onClick={() => updateSettings({ darkMode: !settings.darkMode })}
-                            className={`w-12 h-6 rounded-full relative transition-all duration-300 ${settings.darkMode ? "bg-purple-500" : "bg-white/10"}`}
+                            onClick={() => updateSettings({ neuralOptimized: !settings.neuralOptimized })}
+                            className={`w-12 h-6 rounded-full relative transition-all duration-300 ${settings.neuralOptimized ? "bg-purple-500" : "bg-white/10"}`}
                         >
-                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 ${settings.darkMode ? "left-7" : "left-1"}`} />
+                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 ${settings.neuralOptimized ? "left-7" : "left-1"}`} />
                         </button>
                     </div>
+
+                    {/* Confidence Threshold Slider */}
+                    <div className="pt-2">
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <div className="text-[10px] font-black text-white uppercase">辨識靈敏度</div>
+                                <div className="text-[8px] font-bold text-gray-500 uppercase">調整視覺辨識的嚴謹門檻</div>
+                            </div>
+                            <div className="text-xs font-black text-[#00ff88]">{Math.round(settings.confidenceThreshold * 100)}%</div>
+                        </div>
+                        <input 
+                            type="range" 
+                            min="0.1" 
+                            max="0.9" 
+                            step="0.05" 
+                            value={settings.confidenceThreshold} 
+                            onChange={(e) => updateSettings({ confidenceThreshold: parseFloat(e.target.value) })}
+                            className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#00ff88]"
+                        />
+                    </div>
                 </div>
+            </div>
+
+            {/* Support & Data Management */}
+            <div className="bg-[#1a4d3d]/20 p-6 rounded-[2.5rem] border border-white/5 mb-8">
+                <h3 className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-6 px-1">資料與權限管理</h3>
+                <div className="space-y-4">
+                    <button onClick={() => nav("/saved")} className="w-full flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all text-left">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-amber-400/10 flex items-center justify-center"><HelpCircle size={18} className="text-amber-400" /></div>
+                            <div>
+                                <div className="text-[10px] font-black text-white uppercase">查看食材耗損分析</div>
+                                <div className="text-[8px] font-bold text-gray-500 uppercase">分析您過去的食材利用效率</div>
+                            </div>
+                        </div>
+                        <ChevronRight size={16} className="text-gray-600" />
+                    </button>
+
+                    <button 
+                        onClick={() => {
+                            if (window.confirm("確定要清空所有存儲的食材數據嗎？")) {
+                                clearAll();
+                                alert("數據已重置。");
+                            }
+                        }}
+                        className="w-full flex items-center justify-between p-4 bg-red-500/5 rounded-2xl border border-red-500/10 hover:bg-red-500/10 transition-all text-left"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center"><LogOut size={18} className="text-red-500" /></div>
+                            <div>
+                                <div className="text-[10px] font-black text-red-500 uppercase font-black">清空所有資料</div>
+                                <div className="text-[8px] font-bold text-gray-500 uppercase">重置所有存儲的食材記錄</div>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div className="text-center">
+                <div className="text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">VERSION 1.0.0 LITE / NEURAL CORE v2</div>
             </div>
         </div>
     );
