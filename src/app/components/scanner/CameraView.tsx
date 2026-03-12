@@ -177,7 +177,7 @@ export function CameraView({ videoRef }: CameraViewProps) {
                 <div className={`absolute top-4 left-1/2 transform -translate-x-1/2 z-20 bg-[#0f2e24]/80 backdrop-blur-md border ${!modelLoaded ? 'border-red-400' : isScanning ? 'border-amber-400' : 'border-[#00ff88]'} rounded-full px-4 py-1.5 flex items-center gap-2 shadow-[0_0_15px_rgba(0,255,136,0.3)] transition-colors duration-500`}>
                     <div className={`w-2 h-2 rounded-full ${!modelLoaded ? 'bg-red-400' : isScanning ? 'bg-amber-400 animate-pulse' : 'bg-[#00ff88]'} shadow-[0_0_8px_currentColor]`} />
                     <span className={`text-[10px] font-black tracking-widest ${!modelLoaded ? 'text-red-400' : isScanning ? 'text-amber-400' : 'text-[#00ff88]'} uppercase`}>
-                        {!modelLoaded ? "Loading Engine..." : isScanning ? "Analyzing..." : "離線 AI 核心已就緒"}
+                        {!modelLoaded ? "Loading Engine..." : isScanning ? "Analyzing..." : "神經核心運作中"}
                     </span>
                 </div>
 
@@ -246,7 +246,7 @@ export function CameraView({ videoRef }: CameraViewProps) {
                     className="w-full bg-[#00ff88] text-[#0f2e24] py-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-[#00dd77] transition-all active:scale-[0.98] shadow-[0_8px_20px_rgba(0,255,136,0.3)] disabled:opacity-50"
                 >
                     {isScanning ? <Loader2 size={24} className="animate-spin" /> : <Camera size={24} strokeWidth={3} />}
-                    {isScanning ? "LOCAL INFERENCING..." : "離線 AI 辨識"}
+                    {isScanning ? "NEURAL PROCESSING..." : "神經網絡視覺辨識"}
                 </button>
             </div>
         </div>
