@@ -18,9 +18,8 @@ jobs:
         with:
           node-version: 22
 
-      - name: 🛠️ 通訊建構協議 (Install & Build)
+      - name: 🛠️ 前端建構 (Install & Build)
         env:
-          # 強制告知 npm 這是 macOS arm64 環境，避免安裝 Windows 零件
           npm_config_platform: darwin
           npm_config_arch: arm64
         run: |
@@ -33,29 +32,27 @@ jobs:
         run: |
           npx cap sync ios
 
-      - name: 🪴 安裝 iOS 原生套件 (CocoaPods)
-        run: |
-          cd ios/App
-          pod install
-
-      - name: 🏗️ 啟動 Xcode 雲端編譯 (Build App)
+      - name: 🏗️ 啟動 Xcode 雲端編譯 (Build App via SPM)
         run: |
           set -o pipefail
-          xcodebuild -workspace ios/App/App.xcworkspace \
+          xcodebuild -project ios/App/App.xcodeproj \
             -scheme App \
             -sdk iphoneos \
             -configuration Debug \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee xcodebuild.log
 
       - name: 📦 打包成 .ipa 檔 (Windows 專用)
         run: |
+          APP_PATH=$(find build/Build/Products -name "*.app" -type d | head -1)
+          echo "Found .app at: $APP_PATH"
           mkdir -p Payload
-          cp -r build/Build/Products/Debug-iphoneos/App.app Payload/
+          cp -r "$APP_PATH" Payload/
           zip -r KitchenAI.ipa Payload
-          
+
       - name: 📁 上傳安裝資源 (Upload Artifact)
         uses: actions/upload-artifact@v4
         with:
