@@ -16,11 +16,14 @@ jobs:
       - name: 📦 安裝 Web 依賴項 (Node.js)
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: 🛠️ 通訊建構協議 (Install & Build)
+        env:
+          # 強制告知 npm 這是 macOS arm64 環境，避免安裝 Windows 零件
+          npm_config_platform: darwin
+          npm_config_arch: arm64
         run: |
-          # 完整清除 Windows 產生的快取，強制 Mac 環境重新安裝正確的原生零件
           rm -f package-lock.json
           rm -rf node_modules
           npm install
