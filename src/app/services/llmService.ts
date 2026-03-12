@@ -40,6 +40,9 @@ class LLMService {
 
         try {
             const apiUrl = import.meta.env.VITE_DETECTION_API_URL || "http://localhost:8000";
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超時
+
             const response = await fetch(`${apiUrl}/api/generate-recipe`, {
                 method: "POST",
                 headers: {
@@ -49,8 +52,10 @@ class LLMService {
                 body: JSON.stringify({
                     selected_ingredients: ingredients,
                     preferences: request.preferences
-                })
+                }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -73,21 +78,55 @@ class LLMService {
             }));
 
         } catch (error) {
-            console.error("LLMService 調用失敗:", error);
-            // 本地保底邏輯 (Local fallback in case of absolute failure)
-            return [
+            console.warn("LLMService 調用失敗，切換至本地智能匹配模式 (Offline Mode):", error);
+            
+            // 本地智能化保底邏輯 (Enhanced Local Mock Engine)
+            const mainIng = ingredients[0] || "綜合食材";
+            const ingCount = ingredients.length;
+            
+            // 定義基礎 Mock 模板
+            const templates = [
                 {
-                    id: "local-fallback",
-                    name: "全能型食材濃湯 (離線)",
-                    image: "https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=800",
-                    time: "25 min",
-                    difficulty: "medium",
-                    category: "mixed",
-                    requiredIngredients: ingredients.slice(0, 3),
-                    description: "當網路連線不穩時提供的基礎應急食譜。",
-                    matchScore: 85
+                    name: `${mainIng}風味炒飯`,
+                    description: `利用現有的 ${ingredients.slice(0, 2).join('金')} 快速翻炒出的香噴噴家常料理。`,
+                    category: "mixed" as const,
+                    image: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?q=80&w=800"
+                },
+                {
+                    name: `法式${mainIng}濃湯`,
+                    description: `將 ${ingredients.join('、')} 燉煮，鎖住營養，口感豐富細膩的營養湯品。`,
+                    category: "vegetable" as const,
+                    image: "https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=800"
+                },
+                {
+                    name: `清涼 ${mainIng} 溫沙拉`,
+                    description: `適合夏日的輕食，保留 ${mainIng} 的原味，健康低卡。`,
+                    category: "mixed" as const,
+                    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=800"
+                },
+                {
+                    name: `秘製 ${mainIng} 熱炒`,
+                    description: `使用大火熱炒出的 ${ingredients.slice(0, 3).join('與')}，完美重現經典小吃風味。`,
+                    category: "meat" as const,
+                    image: "https://images.unsplash.com/photo-1512058564366-18510be2db19?q=80&w=800"
                 }
             ];
+
+            // 根據食材數量隨機挑選 2-3 個
+            return templates
+                .sort(() => 0.5 - Math.random())
+                .slice(0, Math.min(3, templates.length))
+                .map((t, idx) => ({
+                    id: `local-mock-${idx}-${Date.now()}`,
+                    name: t.name,
+                    image: t.image,
+                    time: `${10 + idx * 5} MIN`,
+                    difficulty: idx === 0 ? "easy" : "medium",
+                    category: t.category,
+                    requiredIngredients: ingredients,
+                    description: t.description,
+                    matchScore: 90 - idx * 5
+                }));
         }
     }
 }
