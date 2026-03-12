@@ -347,7 +347,7 @@ export function Inventory() {
                 </button>
             </div>
 
-            <InventoryStats totalItems={total} freshItems={scannedItems.length - expiredCount} expiredItems={expiredCount} />
+            <InventoryStats freshItems={scannedItems.length - expiredCount} expiredItems={expiredCount} />
 
             {showForm && (<AddEntryForm onAdd={addItem} onDismiss={() => setShowForm(false)} categories={["全部", "蔬菜", "水果", "乳製品", "肉類", "五穀", "其他"]} />)}
 
@@ -484,9 +484,14 @@ function NeuralAnalyticsDashboard({ data, scannedItems }: { data: any[], scanned
 
     // 開發者日誌：協助追蹤數據流
     useEffect(() => {
-        console.log("📊 [Analytics] Total Data Points:", chartData.length);
-        console.log("📊 [Analytics] Current Page Data:", visibleData);
-    }, [chartPage, chartData, visibleData]);
+        if (chartData.length > 0) {
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const todayRecord = chartData.find(d => d.date === dateStr);
+            console.log(`📊 [Analytics] Context State Updated -> Today (${dateStr}) Waste:`, todayRecord?.amount || 0);
+            console.log("📊 [Analytics] Full Waste History:", chartData);
+        }
+    }, [chartData]);
 
     return (
         <div className="bg-[#1a4d3d]/30 rounded-[2.5rem] p-6 border border-white/5 mb-8 relative overflow-hidden group">

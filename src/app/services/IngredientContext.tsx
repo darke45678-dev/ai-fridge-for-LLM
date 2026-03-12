@@ -71,31 +71,7 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
     const [settings, setSettings] = useState({ notifications: true, neuralOptimized: true, confidenceThreshold: 0.25 });
     const [savedRecipes, setSavedRecipes] = useState<any[]>([]);
 
-    const [wasteHistory, setWasteHistory] = useState<WasteRecord[]>(() => {
-        const records: WasteRecord[] = [];
-        const today = new Date();
-        const baseAmounts = [2, 0, 3, 1, 0, 4, 1, 0, 2, 0, 0, 1, 0, 5, 2, 0, 1, 1, 0, 3, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 2];
-        const wasteCandidates = ["番茄", "雞蛋", "菠菜", "茄子", "牛奶", "牛肉", "蘋果", "優格"];
-
-        for (let i = 29; i >= 0; i--) {
-            const d = new Date(today);
-            d.setDate(today.getDate() - i);
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            const amount = baseAmounts[i % baseAmounts.length];
-            const items = amount > 0 
-                ? Array.from({ length: amount }, () => wasteCandidates[Math.floor(Math.random() * wasteCandidates.length)])
-                : [];
-
-            records.push({
-                date: `${y}-${m}-${day}`,
-                amount: amount,
-                items: items
-            });
-        }
-        return records;
-    });
+    const [wasteHistory, setWasteHistory] = useState<WasteRecord[]>([]);
 
     // Load from localStorage on mount
     useEffect(() => {
@@ -237,6 +213,9 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
             const isWaste = itemToRemove.isSpoiled || daysLeft <= 0 || expiryDays <= 0;
             
             if (isWaste) {
+                // 發送即時通知，告知數據已錄入
+                notificationService.send("📊 數據統計更新", `已將 "${itemToRemove.name}" 計入今日浪費數據`);
+
                 setWasteHistory(prev => {
                     const today = new Date();
                     // 格式：YYYY-MM-DD (精確到本地日期)
@@ -294,9 +273,15 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
     };
 
     const clearAll = () => {
+        // 重置所有關鍵數據，實現完整系統初始化
         setScannedItems([]);
         setRecommendedRecipes([]);
         setTempDetections([]);
+        setSavedRecipes([]);
+        setWasteHistory([]);
+        setSelectedIds([]);
+        // 通知使用者已完成重置
+        notificationService.send("系統重置完成", "所有庫存、統計數據與收藏食譜已全數清空。");
     };
 
     const updateSettings = (newSettings: Partial<{ notifications: boolean; neuralOptimized: boolean; confidenceThreshold: number }>) => {
