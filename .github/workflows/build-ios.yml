@@ -33,6 +33,11 @@ jobs:
         run: |
           npx cap sync ios
 
+      - name: 🪴 安裝 iOS 原生套件 (CocoaPods)
+        run: |
+          cd ios/App
+          pod install
+
       - name: 🏗️ 啟動 Xcode 雲端編譯 (Build App)
         run: |
           set -o pipefail
