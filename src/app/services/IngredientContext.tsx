@@ -71,12 +71,10 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
     const [settings, setSettings] = useState({ notifications: true, neuralOptimized: true, confidenceThreshold: 0.25 });
     const [savedRecipes, setSavedRecipes] = useState<any[]>([]);
 
-    // Mock 30 days of history
-    const [wasteHistory] = useState<WasteRecord[]>(() => {
+    const [wasteHistory, setWasteHistory] = useState<WasteRecord[]>(() => {
         const records: WasteRecord[] = [];
         const today = new Date();
         const baseAmounts = [2, 0, 3, 1, 0, 4, 1, 0, 2, 0, 0, 1, 0, 5, 2, 0, 1, 1, 0, 3, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 2];
-
         const wasteCandidates = ["番茄", "雞蛋", "菠菜", "茄子", "牛奶", "牛肉", "蘋果", "優格"];
 
         for (let i = 29; i >= 0; i--) {
@@ -85,13 +83,11 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
-
             const amount = baseAmounts[i % baseAmounts.length];
             const items = amount > 0 
                 ? Array.from({ length: amount }, () => wasteCandidates[Math.floor(Math.random() * wasteCandidates.length)])
                 : [];
 
-            // 使用一些假資料的規律，包含0、一些小浪費、偶爾較大浪費
             records.push({
                 date: `${y}-${m}-${day}`,
                 amount: amount,
@@ -107,11 +103,13 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
         const savedRecs = localStorage.getItem("recommendedRecipes");
         const savedSettings = localStorage.getItem("appSettings");
         const savedBookmarked = localStorage.getItem("savedRecipes");
+        const savedWaste = localStorage.getItem("wasteHistory");
         
         if (saved) try { setScannedItems(JSON.parse(saved)); } catch (e) { }
         if (savedRecs) try { setRecommendedRecipes(JSON.parse(savedRecs)); } catch (e) { }
         if (savedSettings) try { setSettings(JSON.parse(savedSettings)); } catch (e) { }
         if (savedBookmarked) try { setSavedRecipes(JSON.parse(savedBookmarked)); } catch (e) { }
+        if (savedWaste) try { setWasteHistory(JSON.parse(savedWaste)); } catch (e) { }
     }, []);
 
     // Notification check effect
@@ -141,6 +139,10 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         localStorage.setItem("savedRecipes", JSON.stringify(savedRecipes));
     }, [savedRecipes]);
+
+    useEffect(() => {
+        localStorage.setItem("wasteHistory", JSON.stringify(wasteHistory));
+    }, [wasteHistory]);
 
     /**
      * 新增單一食材進入庫存
@@ -215,6 +217,43 @@ export function IngredientProvider({ children }: { children: ReactNode }) {
 
     const removeItem = (id: string) => {
         if (!id) return;
+        
+        const itemToRemove = scannedItems.find(i => i.id === id);
+        
+        // 如果食材被判定為「過期」或「損壞」，則計入浪費數據
+        if (itemToRemove) {
+            const daysPassed = Math.floor((Date.now() - (itemToRemove.timestamp || Date.now())) / (1000 * 60 * 60 * 24));
+            const isExpired = (itemToRemove.expiryDays !== undefined ? itemToRemove.expiryDays : 7) - daysPassed <= 0;
+            
+            if (itemToRemove.isSpoiled || isExpired) {
+                setWasteHistory(prev => {
+                    const today = new Date();
+                    const y = today.getFullYear();
+                    const m = String(today.getMonth() + 1).padStart(2, '0');
+                    const d = String(today.getDate()).padStart(2, '0');
+                    const dateStr = `${y}-${m}-${d}`;
+
+                    const newHistory = [...prev];
+                    const existingIdx = newHistory.findIndex(h => h.date === dateStr);
+                    
+                    if (existingIdx !== -1) {
+                        newHistory[existingIdx] = {
+                            ...newHistory[existingIdx],
+                            amount: newHistory[existingIdx].amount + 1,
+                            items: [...(newHistory[existingIdx].items || []), itemToRemove.name]
+                        };
+                    } else {
+                        newHistory.push({
+                            date: dateStr,
+                            amount: 1,
+                            items: [itemToRemove.name]
+                        });
+                    }
+                    return newHistory;
+                });
+            }
+        }
+
         setScannedItems(prev => prev.filter(item => item.id !== id));
         setTempDetections(prev => prev.filter(item => item.id !== id));
         setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
