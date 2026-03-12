@@ -1,9 +1,9 @@
 {
-  "name": "@figma/my-make-file",
+  "name": "ios-fridge-lite",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.0",
   "type": "module",
-  "homepage": "https://darke45678-dev.github.io/ios-fridge-test/",
+  "homepage": "https://darke45678-dev.github.io/ios-fridge-lite/",
   "scripts": {
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",

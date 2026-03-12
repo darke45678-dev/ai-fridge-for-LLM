@@ -6,10 +6,10 @@ import { VitePWA } from 'vite-plugin-pwa'
 import compression from 'vite-plugin-compression'
 
 export default defineConfig({
-  base: "/ios-fridge-test/",
+  base: "/ios-fridge-lite/",
   plugins: [
     // The React and Tailwind plugins are both required for Make, even if
-    // Tailwind is not being actively used – do not remove them
+    // Tailwind is not being actively used  do not remove them
     react(),
     tailwindcss(),
     compression(),
@@ -17,9 +17,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['apple-icon.png', 'vite.svg'],
       manifest: {
-        name: 'KITCHEN AI - Culinary Intelligence',
-        short_name: 'KitchenAI',
-        description: 'AI-powered grocery scanning and recipe intelligence system.',
+        name: 'KITCHEN AI LITE - Culinary Intelligence',
+        short_name: 'KitchenLite',
+        description: 'Lightweight AI-powered grocery scanning and recipe intelligence system.',
         theme_color: '#00ff88',
         background_color: '#0f2e24',
         display: 'standalone',
